@@ -87,17 +87,15 @@ class _ScheduleList extends StatelessWidget {
         child: StreamBuilder<List<ScheduleWithColor>>(
             stream: GetIt.I<LocalDatabase>().watchSchedules(selectedDate),
             builder: (context, snapshot) {
-              print(snapshot.data);
               if (!snapshot.hasData) {
                 return Center(child: CircularProgressIndicator());
               }
 
               if (snapshot.hasData && snapshot.data!.isEmpty) {
                 return Center(
-                  child: Text('스케쥴이 없습니다.'),
+                  child: Text('스케줄이 없습니다.'),
                 );
               }
-
               return ListView.separated(
                   separatorBuilder: (context, index) {
                     return SizedBox(height: 8.0);
@@ -111,14 +109,28 @@ class _ScheduleList extends StatelessWidget {
                       onDismissed: (DismissDirection direction){
                         GetIt.I<LocalDatabase>().removeSchedule(scheduleWithColor.schedule.id);
                       },
-                      child: ScheduleCard(
-                        startTime: scheduleWithColor.schedule.startTime,
-                        endTime: scheduleWithColor.schedule.endTime,
-                        content: scheduleWithColor.schedule.content,
-                        color: Color(
-                          int.parse(
-                            'FF${scheduleWithColor.categoryColor.hexCode}',
-                            radix: 16,
+                      child: GestureDetector(
+                        onTap: (){
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (_) {
+                              return ScheduleBottomSheet(
+                                selectedDate: selectedDate,
+                                scheduleId: scheduleWithColor.schedule.id,
+                              );
+                            },
+                          );
+                        },
+                        child: ScheduleCard(
+                          startTime: scheduleWithColor.schedule.startTime,
+                          endTime: scheduleWithColor.schedule.endTime,
+                          content: scheduleWithColor.schedule.content,
+                          color: Color(
+                            int.parse(
+                              'FF${scheduleWithColor.categoryColor.hexCode}',
+                              radix: 16,
+                            ),
                           ),
                         ),
                       ),

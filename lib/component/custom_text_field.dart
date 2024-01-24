@@ -6,7 +6,8 @@ class CustomTextField extends StatelessWidget {
   final String label;
   final bool isTime;
   final FormFieldSetter<String> onSaved;
-  const CustomTextField({required this.label, required this.isTime, required this.onSaved, Key? key}) : super(key: key);
+  final String initialValue;
+  const CustomTextField({required this.label, required this.isTime, required this.onSaved, required this.initialValue, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +57,7 @@ class CustomTextField extends StatelessWidget {
       cursorColor: Colors.grey,
       expands: !isTime,
       maxLines: isTime ? 1 : null,
+      initialValue: initialValue,
       keyboardType: isTime ? TextInputType.number : TextInputType.multiline,
       inputFormatters: isTime ? [
         FilteringTextInputFormatter.digitsOnly,

@@ -18,10 +18,6 @@ class Calendar extends StatelessWidget {
     final defaultBoxDeco = BoxDecoration(
       borderRadius: BorderRadius.circular(6.0),
       color: Colors.grey[200],
-      border: Border.all(
-        color: Colors.black,
-        width: 1,
-      ),
     );
 
     final defaultTextStyle = TextStyle(
