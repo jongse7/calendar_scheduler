@@ -2,9 +2,11 @@ import 'package:calendar_scheduler/component/schedule_bottom_sheet.dart';
 import 'package:calendar_scheduler/component/schedule_card.dart';
 import 'package:calendar_scheduler/component/today_banner.dart';
 import 'package:calendar_scheduler/const/color.dart';
+import 'package:calendar_scheduler/model/schedule_with_color.dart';
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:get_it/get_it.dart';
 import '../component/calendar.dart';
+import '../datebase/drift_database.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  DateTime selectedDay = DateTime(
+  DateTime selectedDay = DateTime.utc(
     DateTime.now().year,
     DateTime.now().month,
     DateTime.now().day,
@@ -34,11 +36,13 @@ class _HomeScreenState extends State<HomeScreen> {
               onDaySelected: onDaySelected,
             ),
             SizedBox(height: 8.0),
-            TodayBanner(selectedDay: selectedDay, scheduleCount: 3),
+            TodayBanner(selectedDay: selectedDay),
             SizedBox(
               height: 8.0,
             ),
-            _ScheduleList(),
+            _ScheduleList(
+              selectedDate: selectedDay,
+            ),
           ],
         ),
       ),
@@ -52,7 +56,9 @@ class _HomeScreenState extends State<HomeScreen> {
           context: context,
           isScrollControlled: true,
           builder: (_) {
-            return ScheduleBottomSheet();
+            return ScheduleBottomSheet(
+              selectedDate: selectedDay,
+            );
           },
         );
       },
@@ -70,24 +76,54 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _ScheduleList extends StatelessWidget {
-  const _ScheduleList({Key? key}) : super(key: key);
+  final DateTime selectedDate;
+  const _ScheduleList({required this.selectedDate, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: ListView.separated(
-            separatorBuilder: (context, index) {
-              return SizedBox(height: 8.0);
-            },
-            itemCount: 5,
-            itemBuilder: (context, index) {
-              return ScheduleCard(
-                  startTime: 8,
-                  endTime: 14,
-                  content: "프로그래밍 공부하기",
-                  color: Colors.red);
+        child: StreamBuilder<List<ScheduleWithColor>>(
+            stream: GetIt.I<LocalDatabase>().watchSchedules(selectedDate),
+            builder: (context, snapshot) {
+              print(snapshot.data);
+              if (!snapshot.hasData) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasData && snapshot.data!.isEmpty) {
+                return Center(
+                  child: Text('스케쥴이 없습니다.'),
+                );
+              }
+
+              return ListView.separated(
+                  separatorBuilder: (context, index) {
+                    return SizedBox(height: 8.0);
+                  },
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    final scheduleWithColor = snapshot.data![index];
+                    return Dismissible(
+                      key: ObjectKey(scheduleWithColor.schedule.id),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (DismissDirection direction){
+                        GetIt.I<LocalDatabase>().removeSchedule(scheduleWithColor.schedule.id);
+                      },
+                      child: ScheduleCard(
+                        startTime: scheduleWithColor.schedule.startTime,
+                        endTime: scheduleWithColor.schedule.endTime,
+                        content: scheduleWithColor.schedule.content,
+                        color: Color(
+                          int.parse(
+                            'FF${scheduleWithColor.categoryColor.hexCode}',
+                            radix: 16,
+                          ),
+                        ),
+                      ),
+                    );
+                  });
             }),
       ),
     );

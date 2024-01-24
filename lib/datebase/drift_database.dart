@@ -1,6 +1,7 @@
 // private 값들은 불러올 수 없다.
 import 'dart:io';
 
+import 'package:calendar_scheduler/model/schedule_with_color.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,11 +22,38 @@ part 'drift_database.g.dart';
 class LocalDatabase extends _$LocalDatabase {
   LocalDatabase() : super(_openConnection());
 
-  Future<int> createSchedule(SchedulesCompanion data) => into(schedules).insert(data);
+  Future<int> createSchedule(SchedulesCompanion data) =>
+      into(schedules).insert(data);
 
-  Future<int> createCategoryColor(CategoryColorsCompanion data) => into(categoryColors).insert(data);
+  Future<int> createCategoryColor(CategoryColorsCompanion data) =>
+      into(categoryColors).insert(data);
 
-  Future<List<CategoryColor>> getCategoryColors() => select(categoryColors).get();
+  Future<List<CategoryColor>> getCategoryColors() =>
+      select(categoryColors).get();
+
+  Future<int> removeSchedule(int id) => (delete(schedules)..where((tbl)=>tbl.id.equals(id))).go();
+
+  Stream<List<ScheduleWithColor>> watchSchedules(DateTime date) {
+    final query = select(schedules).join([
+      innerJoin(categoryColors, categoryColors.id.equalsExp(schedules.colorId))
+    ]);
+
+    query.where(schedules.date.equals(date));
+    query.orderBy([
+      // asc -> ascending 오름차순
+      // desc -> descending 내림차순
+      OrderingTerm.asc(schedules.startTime),
+    ]);
+
+    return query.watch().map(
+          (rows) => rows.map(
+            (row) => ScheduleWithColor(
+              schedule: row.readTable(schedules),
+              categoryColor: row.readTable(categoryColors),
+            ),
+          ).toList(),
+        );
+  }
 
   @override
   int get schemaVersion => 1;
